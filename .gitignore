@@ -1,0 +1,28 @@
+# Segredos - NUNCA versionar
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+
+# Dados baixados/gerados pelos scripts (camadas bronze/silver/gold).
+# São grandes, mudam a cada execução e são 100% reproduzíveis rodando os
+# scripts em src/ novamente — por isso não fazem sentido no git.
+# Os .gitkeep garantem que as pastas continuem existindo no repositório.
+data/bronze/**
+data/silver/**
+data/gold/**
+!data/**/.gitkeep
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Testes
+.pytest_cache/
