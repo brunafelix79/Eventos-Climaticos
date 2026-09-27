@@ -229,4 +229,4 @@ mocks e dados simulados.
 ## Contato
 Para mais informações sobre o projeto, sugestões ou reportar erros:
 - [Bruna Felix] — [brunafelixti@hotmail.com]
-- [[link do seu repositório no GitHub, quando publicar](https://github.com/brunafelix79/Eventos-Climaticos)]
+- [[link do Repositório](https://github.com/brunafelix79/Eventos-Climaticos)]
