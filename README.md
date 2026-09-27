@@ -1,7 +1,5 @@
 # hidroaccess
 
-![Alt](docs/images/ecotec.png "Identidade visual do grupo de pesquisa Ecotecnologias")
-
 ## Sumário
 - [Sobre](#sobre)
 - [Estrutura do projeto](#estrutura-do-projeto)
@@ -20,11 +18,12 @@
 - [Contato](#contato)
 
 ## Sobre
-Projeto para automatizar a coleta de dados hidrológicos e climáticos usados
-pelo grupo de pesquisa Ecotecnologias: chuva e cota de estações da ANA,
-alertas meteorológicos do INMET e o índice El Niño/La Niña (NOAA). Inclui a
-biblioteca `hidroaccess`, cliente Python para a API HidroWebService da ANA.
-Não possui nenhuma afiliação ou relação com a ANA, o INMET ou a NOAA.
+Projeto para automatizar a coleta de dados hidrológicos e climáticos: chuva
+e cota de estações da ANA, alertas meteorológicos do INMET e o índice El
+Niño/La Niña (NOAA). Inclui a biblioteca `hidroaccess`, cliente Python para
+a API HidroWebService da ANA. Não possui nenhuma afiliação ou relação com a
+ANA, o INMET ou a NOAA — os dados são baixados diretamente das fontes
+oficiais e públicas de cada uma.
 
 ## Estrutura do projeto
 O projeto é organizado em camadas por pasta (estilo "medalhão": bronze →
@@ -32,17 +31,20 @@ silver → gold), sem depender de Databricks, Spark ou um banco SQL — só
 pastas e scripts Python comuns, pensado pra rodar local no Visual Studio.
 
 ```
-Hidro/
 ├── hidroaccess/         # biblioteca: cliente da API da ANA (não mexe em arquivo)
-├── src/                 # scripts de coleta, um subpacote por fonte de dado
+├── src/                 # código: scripts de coleta + tratamento, por camada/fonte
 │   ├── ana/              # chuva, cota e inventário de estações (ANA)
 │   ├── inmet/             # alertas meteorológicos (INMET)
 │   ├── noaa/               # índice El Niño / La Niña (NOAA)
-│   └── previsao/            # previsão numérica/satélite (ainda não implementado)
-├── data/                 # camadas de dado, por pasta
-│   ├── bronze/            # dado bruto, como a fonte entrega (gerado pelos scripts em src/)
-│   ├── silver/             # dado limpo/unificado (a construir)
-│   └── gold/                # dado pronto pra análise/dashboard (a construir)
+│   ├── previsao/            # previsão numérica/satélite (ainda não implementado)
+│   ├── silver/              # notebooks de limpeza/tratamento (bronze -> silver)
+│   ├── gold/                 # notebooks de padronização final (silver -> gold)
+│   └── pipeline.py            # orquestrador: roda tudo em sequência
+├── data/                 # camadas de dado, por pasta (só saída; nada é versionado aqui)
+│   ├── bronze/            # dado bruto, como a fonte entrega
+│   ├── silver/             # dado limpo/despivotado
+│   └── gold/                # dado tipado, em Parquet, pronto pra BI
+├── logs/                 # log de cada execução do pipeline.py
 ├── tests/                # testes automatizados da biblioteca hidroaccess
 └── docs/                 # imagens e documentação extra
 ```
@@ -50,22 +52,19 @@ Hidro/
 - **bronze**: exatamente o que os scripts de `src/` baixam da fonte oficial
   (ANA, INMET, NOAA), sem nenhum tratamento — só append incremental e
   deduplicação básica.
-- **silver**: onde entraria a limpeza/junção desses dados brutos (ex.: cruzar
-  chuva + cota + alertas por data e estação). Ainda não existe nenhum script
-  aqui; é o próximo passo natural do projeto.
-- **gold**: dado já agregado/pronto pra consumo final (relatório, dashboard,
-  modelo). Também ainda não existe.
+- **silver**: dado limpo/despivotado a partir do bronze (ex.: `tratar_chuva.ipynb`
+  transforma o CSV "largo" de chuva numa série diária).
+- **gold**: dado com schema tipado, em **Parquet**, pronto pra abrir direto no
+  Power BI/Excel/Tableau sem precisar de banco de dados.
 
 Os dados dentro de `data/` **não são versionados no git** (veja
 `.gitignore`) — são grandes, mudam a cada execução e são 100%
 reproduzíveis rodando os scripts de novo. Só as pastas (via `.gitkeep`) ficam
-no repositório, pra estrutura existir mesmo em um clone novo.
+no repositório, pra estrutura existir mesmo em um clone novo. Por isso, num
+projeto recém-clonado, `data/` começa vazia — é esperado.
 
-> ⚠️ O arquivo `.env` original desse projeto tinha credenciais reais salvas.
-> Ele foi removido do pacote reorganizado (só ficou o `.env.example`, sem
-> segredo nenhum). Antes de subir pro GitHub, troque a senha usada nesse
-> `.env` — se ele já foi commitado em algum histórico de git antes, o ideal
-> é considerá-la exposta e trocar de qualquer forma.
+> ⚠️ Nunca commite o arquivo `.env` (ele fica de fora graças ao
+> `.gitignore`). Use sempre o `.env.example` como modelo.
 
 ## Instalação
 ```bash
@@ -178,6 +177,32 @@ python src/inmet/baixar_alertas_inmet.py
 python src/noaa/baixar_el_nino.py
 ```
 
+## Pipeline (`src/pipeline.py`)
+Roda todos os scripts de coleta em sequência (sem depender de Databricks,
+Airflow ou banco SQL):
+```bash
+python src/pipeline.py                          # roda tudo, na ordem certa
+python src/pipeline.py --pular noaa              # pula uma etapa
+python src/pipeline.py --etapas ana_chuva,inmet  # só essas duas
+```
+Continua mesmo se uma etapa falhar, e salva um log de cada execução em
+`logs/pipeline_AAAAMMDD_HHMMSS.txt`.
+
+## Tratamento silver e gold (`src/silver/`, `src/gold/`)
+- `src/silver/tratar_chuva.ipynb`: despivota o CSV bruto de chuva (uma
+  coluna por dia do mês) numa série diária "longa" (uma linha por
+  estação/dia). Lê `data/bronze/ana/chuva/...` e grava em
+  `data/silver/ana/chuva/chuva_diaria.csv`.
+- `src/gold/gerar_parquet_chuva.ipynb`: pega esse CSV da silver, aplica um
+  schema tipado e grava em `data/gold/ana/chuva/chuva_diaria.parquet` —
+  formato que Power BI, Excel e Tableau já leem nativamente.
+
+Os dois notebooks acham a raiz do projeto sozinhos (procuram o
+`pyproject.toml` subindo as pastas), então funcionam mesmo se você mover o
+arquivo pra outro lugar dentro do projeto — mas o ideal é manter cada um na
+pasta indicada acima, porque `data/` está no `.gitignore` e qualquer coisa
+salva lá dentro não vai pro GitHub.
+
 ## Dados (`data/`)
 ```
 data/
@@ -190,8 +215,10 @@ data/
       alertas/    -> alertas_inmet.csv
     noaa/
       el_nino/    -> sst.mnmean.nc (bruto, ~280 MB), sst_nino34.csv
-  silver/         -> (vazio; próximo passo: dado limpo/unificado)
-  gold/           -> (vazio; próximo passo: dado pronto pra análise)
+  silver/
+    ana/chuva/    -> chuva_diaria.csv
+  gold/
+    ana/chuva/    -> chuva_diaria.parquet
 ```
 
 Veja [CHANGELOG.md](CHANGELOG.md) para o detalhamento do que mudou em
@@ -207,7 +234,5 @@ mocks e dados simulados.
 
 ## Contato
 Para mais informações sobre o projeto, sugestões ou reportar erros:
-- Miguel Brondani - Desenvolvedor: brondani.miguel@gmail.com
-- Daniel Allasia - Professor Orientador: dallasia@gmail.com
-- Ecotecnologias - Grupo de Pesquisa: eco@ecotecnologias.org
-- https://github.com/mBrond/hidroaccess
+- [SEU NOME] — [seu-email@exemplo.com]
+- [link do seu repositório no GitHub, quando publicar]

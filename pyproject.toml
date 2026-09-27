@@ -4,14 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hidroaccess"
-version = "2.0.0"
+version = "1.0.0"
 authors = [
-  { name = "Miguel Brondani", email = "brondani.miguel@gmail.com" },
+  { name = "SEU NOME AQUI", email = "seu-email@exemplo.com" },
 ]
 description = "Cliente Python para a API HidroWebService da ANA"
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -22,11 +21,10 @@ classifiers = [
 dependencies = [
     "aiohttp>=3.11.11",
     "requests>=2.32.3",
+    "python-dotenv>=1.0.1",
+    "pandas>=2.2",
+    "pyarrow>=17.0",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0"]
-
-[project.urls]
-Homepage = "https://github.com/mBrond/hidroaccess"
-Issues = "https://github.com/mBrond/hidroaccess/issues"
