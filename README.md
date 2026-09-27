@@ -31,7 +31,7 @@ silver → gold), sem depender de Databricks, Spark ou um banco SQL — só
 pastas e scripts Python comuns, pensado pra rodar local no Visual Studio.
 
 ```
-├── hidroaccess/         # biblioteca: cliente da API da ANA (não mexe em arquivo)
+├── Eventos_climaticos/         # biblioteca: cliente da API da ANA (não mexe em arquivo)
 ├── src/                 # código: scripts de coleta + tratamento, por camada/fonte
 │   ├── ana/              # chuva, cota e inventário de estações (ANA)
 │   ├── inmet/             # alertas meteorológicos (INMET)
@@ -62,9 +62,6 @@ Os dados dentro de `data/` **não são versionados no git** (veja
 reproduzíveis rodando os scripts de novo. Só as pastas (via `.gitkeep`) ficam
 no repositório, pra estrutura existir mesmo em um clone novo. Por isso, num
 projeto recém-clonado, `data/` começa vazia — é esperado.
-
-> ⚠️ Nunca commite o arquivo `.env` (ele fica de fora graças ao
-> `.gitignore`). Use sempre o `.env.example` como modelo.
 
 ## Instalação
 ```bash
@@ -221,9 +218,6 @@ data/
     ana/chuva/    -> chuva_diaria.parquet
 ```
 
-Veja [CHANGELOG.md](CHANGELOG.md) para o detalhamento do que mudou em
-relação à versão anterior.
-
 ## Desenvolvimento e testes
 ```bash
 pip install -e ".[dev]"
@@ -234,5 +228,5 @@ mocks e dados simulados.
 
 ## Contato
 Para mais informações sobre o projeto, sugestões ou reportar erros:
-- [SEU NOME] — [seu-email@exemplo.com]
-- [link do seu repositório no GitHub, quando publicar]
+- [Bruna Felix] — [brunafelixti@hotmail.com]
+- [[link do seu repositório no GitHub, quando publicar](https://github.com/brunafelix79/Eventos-Climaticos)]
